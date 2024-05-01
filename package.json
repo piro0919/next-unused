@@ -1,26 +1,57 @@
 {
-  "name": "next-unused",
-  "version": "0.0.6",
-  "main": "index.js",
-  "license": "MIT",
+  "author": "piro <piro.haniwa@gmail.com> (https://kk-web.link/)",
   "bin": {
-    "next-unused": "./index.js"
+    "next-unused": "dist/index.js"
   },
-  "scripts": {
-    "test": "node test"
+  "bugs": {
+    "url": "https://github.com/piro0919/next-unused/issues"
   },
-  "files": [
-    "index.js",
-    "madge.webpack.js"
-  ],
   "dependencies": {
-    "madge": "^4.0.1",
-    "ts-loader": "^7.0.0",
-    "typescript": "^4.2.3"
+    "madge": "4.0.2",
+    "recursive-readdir": "2.2.3"
   },
   "devDependencies": {
-    "@types/node": "^13.11.1"
+    "@types/madge": "5.0.3",
+    "@types/node": "13.13.52",
+    "@types/recursive-readdir": "2.2.4",
+    "@typescript-eslint/eslint-plugin": "7.8.0",
+    "@typescript-eslint/parser": "7.8.0",
+    "eslint": "8.57.0",
+    "eslint-config-google": "0.14.0",
+    "eslint-config-prettier": "9.1.0",
+    "eslint-plugin-ext": "0.1.0",
+    "eslint-plugin-filenames": "1.3.2",
+    "eslint-plugin-import": "2.29.1",
+    "eslint-plugin-n": "17.4.0",
+    "eslint-plugin-promise": "6.1.1",
+    "eslint-plugin-sort-destructure-keys": "2.0.0",
+    "eslint-plugin-sort-keys-fix": "1.1.2",
+    "eslint-plugin-typescript-sort-keys": "3.2.0",
+    "eslint-plugin-unused-imports": "3.2.0",
+    "prettier": "3.2.5",
+    "types-tsconfig": "2.1.0",
+    "typescript": "5.4.5"
   },
-  "author": "@pacocoursey",
-  "repository": "pacocoursey/next-unused"
+  "homepage": "https://kk-web.link",
+  "keywords": [
+    "react",
+    "next",
+    "next-unused"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "name": "@piro0919/next-unused",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/piro0919/next-unused.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src --fix",
+    "prettier": "prettier --write ."
+  },
+  "types": "dist/index.d.ts",
+  "version": "0.0.1"
 }
