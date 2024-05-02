@@ -7,10 +7,12 @@
     "url": "https://github.com/piro0919/next-unused/issues"
   },
   "dependencies": {
+    "arr-diff": "4.0.0",
     "madge": "4.0.2",
     "recursive-readdir": "2.2.3"
   },
   "devDependencies": {
+    "@types/arr-diff": "4.0.3",
     "@types/madge": "5.0.3",
     "@types/node": "13.13.52",
     "@types/recursive-readdir": "2.2.4",
@@ -53,5 +55,5 @@
     "prettier": "prettier --write ."
   },
   "types": "dist/index.d.ts",
-  "version": "0.0.1"
+  "version": "0.1.0"
 }

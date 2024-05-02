@@ -22,17 +22,21 @@ npm install @piro0919/next-unused --save-dev
 
 ```js
 module.exports = {
+  excludeExtensions: [],
+  excludeFiles = ["middleware.ts"],
   includeExtensions: [".ts", ".tsx"],
   router: "app",
   srcDir: true,
 };
 ```
 
-| property          | description             | type           | default           |
-| ----------------- | ----------------------- | -------------- | ----------------- |
-| includeExtensions | File extension to check | string[]       | `[".ts", ".tsx"]` |
-| router            | Router used             | `app`, `pages` | `app`             |
-| srcDir            | Use src folder          | boolean        | `true`            |
+| property          | description                 | type                         | default             |
+| ----------------- | --------------------------- | ---------------------------- | ------------------- |
+| excludeExtensions | File extensions not checked | string[]                     | `[]`                |
+| excludeFiles      | Files not checked           | string[]                     | `["middleware.ts"]` |
+| includeExtensions | File extension to check     | string[]                     | `[".ts", ".tsx"]`   |
+| router            | Router used                 | `"app"`, `"pages"`, `"both"` | `"app"`             |
+| srcDir            | Use src folder              | boolean                      | `true`              |
 
 ## Credits
 

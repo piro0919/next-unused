@@ -4,8 +4,7 @@
     "declarationMap": true,
     "esModuleInterop": true,
     "lib": [
-      "es2017",
-      "dom"
+      "ES2019"
     ],
     "module": "commonjs",
     "moduleResolution": "node",
