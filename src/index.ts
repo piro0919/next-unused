@@ -78,6 +78,14 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (process.argv.includes("--error-on-unused-files")) {
+    throw new Error(
+      `Found ${notDependencyFiles.length} unused ${
+        notDependencyFiles.length === 1 ? "file" : "files"
+      }:\n${notDependencyFiles.sort().join("\n")}`,
+    );
+  }
+
   console.log(
     `Found ${notDependencyFiles.length} unused ${
       notDependencyFiles.length === 1 ? "file" : "files"

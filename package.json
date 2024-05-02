@@ -52,8 +52,10 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint src --fix",
-    "prettier": "prettier --write ."
+    "prepublish": "npm run build",
+    "prettier": "prettier --write .",
+    "publish": "npm publish --access=public"
   },
   "types": "dist/index.d.ts",
-  "version": "0.1.0"
+  "version": "0.2.1"
 }

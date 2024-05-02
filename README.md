@@ -12,7 +12,8 @@ npm install @piro0919/next-unused --save-dev
 
 ```json
 "scripts": {
-  "find:unused": "next-unused"
+  "find:unused": "next-unused",
+  "check:unused": "next-unused --error-on-unused-files",
 }
 ```
 
