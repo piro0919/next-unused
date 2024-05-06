@@ -24,7 +24,7 @@ npm install @piro0919/next-unused --save-dev
 ```js
 module.exports = {
   excludeExtensions: [],
-  excludeFiles = ["middleware.ts"],
+  excludeFiles: ["middleware.ts"],
   includeExtensions: [".ts", ".tsx"],
   router: "app",
   srcDir: true,
