@@ -14,7 +14,7 @@
   "devDependencies": {
     "@types/arr-diff": "4.0.3",
     "@types/madge": "5.0.3",
-    "@types/node": "13.13.52",
+    "@types/node": "24.12.2",
     "@types/recursive-readdir": "2.2.4",
     "@typescript-eslint/eslint-plugin": "7.8.0",
     "@typescript-eslint/parser": "7.8.0",
