@@ -1,101 +1,112 @@
-#!/usr/bin/env node
-import fs from "fs";
-import path from "path";
-import diff from "arr-diff";
+import { readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import madge from "madge";
-import recursive from "recursive-readdir";
-import type { TSConfigJSON } from "types-tsconfig";
+
+export type Router = "app" | "pages" | "both";
 
 export type Config = {
+  /** File extensions to exclude when collecting candidates. */
   excludeExtensions?: string[];
+  /** File path fragments to exclude when collecting candidates. */
   excludeFiles?: string[];
+  /** File extensions to include when collecting candidates. */
   includeExtensions?: string[];
-  router?: "app" | "both" | "pages";
+  /** Which Next.js router(s) to scan as the dependency entry. */
+  router?: Router;
+  /** Whether the Next.js project uses `src/`. */
   srcDir?: boolean;
 };
 
-async function main(): Promise<void> {
-  const currentWorkingDirectory = process.cwd();
-  const configPath = path.resolve(
-    currentWorkingDirectory,
-    "next-unused.config.js",
-  );
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const {
-    excludeExtensions = [],
-    excludeFiles = ["middleware.ts"],
-    includeExtensions = [".ts", ".tsx"],
-    router = "app",
-    srcDir = true,
-  }: Config = fs.existsSync(configPath) ? require(configPath) : {};
-  const madgePaths = (router === "both" ? ["app", "pages"] : [router]).map(
-    (r) => path.resolve(currentWorkingDirectory, srcDir ? "src" : "", r),
-  );
-  const tsConfigPath = path.resolve(currentWorkingDirectory, "tsconfig.json");
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-var-requires
-  const tsConfig: TSConfigJSON = require(tsConfigPath);
+const DEFAULTS: Required<Config> = {
+  excludeExtensions: [],
+  excludeFiles: ["middleware.ts"],
+  includeExtensions: [".ts", ".tsx"],
+  router: "app",
+  srcDir: true,
+};
+
+export type FindOptions = {
+  cwd?: string;
+  config?: Config;
+  /** Path to tsconfig.json (relative to cwd). Defaults to tsconfig.json. */
+  tsconfigPath?: string;
+};
+
+async function loadJsonConfig(file: string): Promise<unknown> {
+  if (!existsSync(file)) return {};
+  if (file.endsWith(".json")) {
+    const { readFile } = await import("node:fs/promises");
+    return JSON.parse(await readFile(file, "utf8"));
+  }
+  const mod = await import(file);
+  return mod.default ?? mod;
+}
+
+async function listFiles(root: string): Promise<string[]> {
+  if (!existsSync(root)) return [];
+  const entries = await readdir(root, { withFileTypes: true, recursive: true });
+  return entries.filter((e) => e.isFile()).map((e) => path.join(e.parentPath ?? root, e.name));
+}
+
+export async function findUnusedFiles(options: FindOptions = {}): Promise<string[]> {
+  const cwd = options.cwd ?? process.cwd();
+  const config = { ...DEFAULTS, ...options.config };
+
+  const routers: ("app" | "pages")[] =
+    config.router === "both" ? ["app", "pages"] : [config.router];
+  const baseDir = config.srcDir ? path.resolve(cwd, "src") : cwd;
+  const madgePaths = routers.map((r) => path.resolve(baseDir, r));
+
+  const tsconfigPath = path.resolve(cwd, options.tsconfigPath ?? "tsconfig.json");
+  const tsConfig = (await loadJsonConfig(tsconfigPath)) as {
+    compilerOptions?: Record<string, unknown>;
+  };
+
   const res = await madge(madgePaths, {
-    baseDir: ".",
+    baseDir: cwd,
     fileExtensions: ["ts", "tsx"],
     tsConfig: {
       ...tsConfig,
       compilerOptions: {
         ...tsConfig.compilerOptions,
-        // baseUrl is required in madge
-        baseUrl: ".",
-        // WARNING: path is not resolved when setting "bundler"
+        baseUrl: cwd,
         moduleResolution: "node",
       },
     },
   });
+
   const dependency = res.obj();
-  const dependencyFiles = Array.from(
-    new Set(
-      Object.keys(dependency).flatMap((file) => [file, ...dependency[file]]),
-    ),
-  ).map((dependency) => path.resolve(currentWorkingDirectory, dependency));
-  const files = await recursive(
-    path.resolve(currentWorkingDirectory, srcDir ? "src" : ""),
-  );
-  const notDependencyFiles = diff(files, dependencyFiles)
-    .filter(
-      (file) =>
-        !excludeExtensions.some((excludeExtension) =>
-          file.endsWith(excludeExtension),
-        ) &&
-        !excludeFiles.some((excludeFile) => file.includes(excludeFile)) &&
-        includeExtensions.some((includeExtension) =>
-          file.endsWith(includeExtension),
-        ),
-    )
-    .map((notDependencyFile) =>
-      notDependencyFile.replace(currentWorkingDirectory, ""),
-    );
-
-  if (notDependencyFiles.length === 0) {
-    console.log("No unused files!");
-
-    return;
+  const referenced = new Set<string>();
+  for (const file of Object.keys(dependency)) {
+    referenced.add(path.resolve(cwd, file));
+    for (const dep of dependency[file] ?? []) {
+      referenced.add(path.resolve(cwd, dep));
+    }
   }
 
-  if (process.argv.includes("--error-on-unused-files")) {
-    throw new Error(
-      `Found ${notDependencyFiles.length} unused ${
-        notDependencyFiles.length === 1 ? "file" : "files"
-      }:\n${notDependencyFiles.sort().join("\n")}`,
-    );
-  }
+  const allFiles = await listFiles(baseDir);
 
-  console.log(
-    `Found ${notDependencyFiles.length} unused ${
-      notDependencyFiles.length === 1 ? "file" : "files"
-    }:`,
-  );
+  const unused = allFiles.filter((file) => {
+    if (referenced.has(file)) return false;
+    if (config.excludeExtensions.some((ext) => file.endsWith(ext))) return false;
+    if (config.excludeFiles.some((frag) => file.includes(frag))) return false;
+    if (!config.includeExtensions.some((ext) => file.endsWith(ext))) return false;
+    return true;
+  });
 
-  notDependencyFiles
-    .sort()
-    .forEach((notDependencyFile) => console.log(notDependencyFile));
+  return unused.map((f) => path.relative(cwd, f)).sort();
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-main();
+export async function loadConfig(cwd: string = process.cwd()): Promise<Config> {
+  const jsPath = path.resolve(cwd, "next-unused.config.js");
+  const mjsPath = path.resolve(cwd, "next-unused.config.mjs");
+  const jsonPath = path.resolve(cwd, "next-unused.config.json");
+
+  for (const file of [mjsPath, jsPath, jsonPath]) {
+    if (existsSync(file)) {
+      return (await loadJsonConfig(file)) as Config;
+    }
+  }
+  return {};
+}
