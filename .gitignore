@@ -1,2 +1,11 @@
-/dist
-node_modules
+node_modules/
+dist/
+coverage/
+*.log
+*.tsbuildinfo
+.DS_Store
+.env
+.env.*
+.vscode/
+.next/
+next-env.d.ts
