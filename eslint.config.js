@@ -23,6 +23,6 @@ export default [
     },
   },
   {
-    ignores: ["dist/**", "node_modules/**", "coverage/**", "tests/fixtures/**"],
+    ignores: [".next/**", "coverage/**", "dist/**", "node_modules/**", "tests/fixtures/**"],
   },
 ];

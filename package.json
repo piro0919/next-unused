@@ -16,7 +16,7 @@
     "type": "git",
     "url": "git+https://github.com/piro0919/next-unused.git"
   },
-  "homepage": "https://github.com/piro0919/next-unused#readme",
+  "homepage": "https://next-unused.kkweb.io",
   "bugs": {
     "url": "https://github.com/piro0919/next-unused/issues"
   },
@@ -39,13 +39,16 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
+    "build": "next build",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build"
+    "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build:lib",
+    "dev": "next dev",
+    "start": "next start",
+    "build:lib": "tsup",
+    "build:lib:watch": "tsup --watch"
   },
   "dependencies": {
     "madge": "^8.0.0"
@@ -54,11 +57,17 @@
     "@eslint/js": "^9.17.0",
     "@types/madge": "5.0.3",
     "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
+    "@vercel/analytics": "^1.4.0",
     "eslint": "^9.17.0",
     "lefthook": "^2.0.13",
+    "next": "^15.4.0",
     "prettier": "^3.4.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

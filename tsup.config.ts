@@ -8,6 +8,7 @@ export default defineConfig([
     sourcemap: true,
     clean: true,
     treeshake: true,
+    tsconfig: "tsconfig.build.json",
   },
   {
     entry: { cli: "src/cli.ts" },
@@ -15,5 +16,6 @@ export default defineConfig([
     sourcemap: true,
     clean: false,
     banner: { js: "#!/usr/bin/env node" },
+    tsconfig: "tsconfig.build.json",
   },
 ]);
