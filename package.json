@@ -17,6 +17,7 @@
     "url": "git+https://github.com/piro0919/next-unused.git"
   },
   "homepage": "https://next-unused.kkweb.io",
+  "funding": "https://github.com/sponsors/piro0919",
   "bugs": {
     "url": "https://github.com/piro0919/next-unused/issues"
   },
