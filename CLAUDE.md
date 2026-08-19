@@ -10,6 +10,7 @@
 ## Tech Stack
 
 - Node.js 20+ (uses `fs/promises` recursive readdir, `util.parseArgs`)
+- Next.js — landing page at <https://next-unused.kkweb.io>, lives in the same repo
 - TypeScript 5
 - tsup — dual entry build (library + CLI)
 - Vitest — tests against an in-repo Next.js fixture
@@ -22,12 +23,31 @@
 ```text
 src/
 ├── index.ts                              # programmatic API: findUnusedFiles, loadConfig
-└── cli.ts                                # bin entry with shebang
+├── cli.ts                                # bin entry with shebang
+└── app/                                  # landing page (Next.js App Router)
+    ├── layout.tsx
+    ├── page.tsx
+    ├── opengraph-image.tsx
+    └── globals.css
 
 tests/
 ├── findUnusedFiles.test.ts
 └── fixtures/app-router-project/          # tiny Next.js-shaped fixture
 ```
+
+### Two builds in one repo
+
+The published package and the landing page are built separately, the same way
+the other kkweb.io packages do it.
+
+| Command          | Builds                          | tsconfig              |
+| ---------------- | ------------------------------- | --------------------- |
+| `pnpm build`     | the landing page (`next build`) | `tsconfig.json`       |
+| `pnpm build:lib` | the published package (`tsup`)  | `tsconfig.build.json` |
+
+`tsconfig.json` carries DOM and JSX for the page. `tsconfig.build.json` narrows
+back to Node so the CLI never picks up DOM types. `src/app` is excluded from the
+library build, and `files` keeps it out of the tarball.
 
 ## API
 
