@@ -57,7 +57,7 @@
   "devDependencies": {
     "@eslint/js": "^9.17.0",
     "@types/madge": "5.0.3",
-    "@types/node": "^22.10.0",
+    "@types/node": "^24.13.3",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
@@ -70,7 +70,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2",
+    "typescript": "^7.0.2",
     "vitest": "^2.1.8"
   },
   "engines": {
