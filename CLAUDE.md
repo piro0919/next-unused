@@ -52,21 +52,31 @@ library build, and `files` keeps it out of the tarball.
 ## API
 
 ```ts
-import { findUnusedFiles, loadConfig } from "@piro0919/next-unused";
+import { findUnusedExports, findUnusedFiles, loadConfig } from "@piro0919/next-unused";
 
 const unused = await findUnusedFiles({
   cwd: process.cwd(),
   config: { router: "app", srcDir: true },
 });
+
+const exports = await findUnusedExports({ cwd: process.cwd() });
+// [{ file: "src/lib/format.ts", name: "formatMoney" }]
 ```
 
 ## CLI
 
 ```bash
 next-unused                            # prints unused files
+next-unused --exports                  # prints unused exports instead
 next-unused --error-on-unused-files    # exits 1 when any are found
 next-unused --help
 ```
+
+`--exports` is the export-level companion to the file-level default. The
+dependency graph cannot see inside a file, so a file the router imports can
+still carry an export nobody calls. It matches names across the other source
+files rather than resolving imports, and counts a mention inside a test as a
+use — the list is meant to be read, not enforced.
 
 Config file (project root, picked up in this order): `next-unused.config.mjs` → `.js` → `.json`.
 

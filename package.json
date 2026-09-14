@@ -1,12 +1,13 @@
 {
   "name": "@piro0919/next-unused",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "CLI to find unused files in your Next.js project. Works with both the app and pages routers.",
   "keywords": [
     "next",
     "nextjs",
     "unused",
     "dead-code",
+    "unused-exports",
     "cli",
     "madge"
   ],

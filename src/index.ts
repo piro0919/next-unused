@@ -110,3 +110,78 @@ export async function loadConfig(cwd: string = process.cwd()): Promise<Config> {
   }
   return {};
 }
+
+export type UnusedExport = {
+  /** File the export is declared in, relative to `cwd`. */
+  file: string;
+  /** Exported name. */
+  name: string;
+};
+
+/**
+ * Exports the framework calls for you. Nothing in the project references
+ * these by name, and that is how the router is meant to work.
+ *
+ * `alt`, `size` and `contentType` belong to the metadata image routes
+ * (`opengraph-image.tsx`, `icon.tsx`), which is easy to forget: they sit in an
+ * ordinary-looking component file next to the default export.
+ */
+const FRAMEWORK_EXPORTS =
+  /^(default|middleware|config|metadata|viewport|revalidate|dynamic|dynamicParams|fetchCache|runtime|preferredRegion|maxDuration|experimental_ppr|alt|size|contentType|generateMetadata|generateViewport|generateStaticParams|generateImageMetadata|generateSitemaps|GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)$/;
+
+/** `export function foo`, `export const foo`, `export class Foo`. */
+const EXPORT_DECLARATION = /^export\s+(?:async\s+)?(?:function\*?|const|let|var|class)\s+(\w+)/gm;
+
+const TEST_FILE = /\.(?:test|spec)\.tsx?$/;
+
+/**
+ * Finds exports that no other file mentions by name.
+ *
+ * This is the export-level companion to `findUnusedFiles`: a file can be
+ * imported by the router and still carry an export nobody calls, and the
+ * dependency graph cannot see inside a file.
+ *
+ * Two deliberate choices:
+ *
+ * - A mention inside a test counts as a use. Exports that exist so a test can
+ *   reach them are real, so zero findings is not the goal — the list is meant
+ *   to be read, not enforced.
+ * - Matching is by name across the other files, not by resolving imports. A
+ *   name reached only through `import * as ns` is therefore reported, and a
+ *   name that collides with an unrelated identifier elsewhere is not.
+ */
+export async function findUnusedExports(options: FindOptions = {}): Promise<UnusedExport[]> {
+  const cwd = options.cwd ?? process.cwd();
+  const config = { ...DEFAULTS, ...options.config };
+  const baseDir = config.srcDir ? path.resolve(cwd, "src") : cwd;
+
+  const candidates = (await listFiles(baseDir)).filter((file) => {
+    if (file.endsWith(".d.ts")) return false;
+    if (config.excludeExtensions.some((ext) => file.endsWith(ext))) return false;
+    if (config.excludeFiles.some((frag) => file.includes(frag))) return false;
+    return config.includeExtensions.some((ext) => file.endsWith(ext));
+  });
+
+  const { readFile } = await import("node:fs/promises");
+  const sources = new Map<string, string>(
+    await Promise.all(
+      candidates.map(async (file) => [file, await readFile(file, "utf8")] as const),
+    ),
+  );
+
+  const found: UnusedExport[] = [];
+  for (const [file, text] of sources) {
+    if (TEST_FILE.test(file)) continue;
+
+    for (const match of text.matchAll(EXPORT_DECLARATION)) {
+      const name = match[1];
+      if (!name || FRAMEWORK_EXPORTS.test(name)) continue;
+
+      const mentioned = new RegExp(`\\b${name}\\b`);
+      const used = [...sources].some(([other, body]) => other !== file && mentioned.test(body));
+      if (!used) found.push({ file: path.relative(cwd, file), name });
+    }
+  }
+
+  return found.sort((a, b) => a.file.localeCompare(b.file) || a.name.localeCompare(b.name));
+}
