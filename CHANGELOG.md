@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.0.0 - 2026-10-01
 
 - **BREAKING:** `excludeFiles` no longer matches substrings. A pattern without
   `/` matches a file name exactly; a pattern with `/` is a glob on the path
