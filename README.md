@@ -7,6 +7,14 @@
 
 Walks your Next.js dependency graph from the router root (`app/`, `pages/`, or both) using [`madge`](https://github.com/pahen/madge) and reports `.ts` / `.tsx` files that no one imports.
 
+The files Next.js loads by name are graph roots too, so they and everything they
+import count as used: `middleware`, `proxy` (the Next 16 name for middleware),
+`instrumentation`, `instrumentation-client` and `mdx-components`, with a `.ts`,
+`.tsx`, `.js` or `.jsx` extension, beside `app/` (in `src/` when `srcDir` is on).
+
+`node_modules`, `.next`, `.git`, `dist`, `build`, `out`, `coverage` and `.d.ts`
+files are never reported.
+
 ## Install
 
 ```bash
@@ -53,8 +61,9 @@ Read the list rather than enforcing it. Two things are worth knowing:
   identifier elsewhere is not.
 
 Exports the framework calls for you — `default`, `metadata`, `generateStaticParams`,
-the route handlers, the metadata image `alt` / `size` / `contentType`, and the rest
-of the route segment config — are left alone.
+the route handlers, the metadata image `alt` / `size` / `contentType`, the rest
+of the route segment config, `middleware` / `proxy` / `config`, `register` /
+`onRequestError`, `onRouterTransitionStart` and `useMDXComponents` — are left alone.
 
 ## Configuration
 
@@ -64,20 +73,31 @@ Drop a config file in your project root. Picked up in this order: `next-unused.c
 // next-unused.config.mjs
 export default {
   excludeExtensions: [],
-  excludeFiles: ["middleware.ts"],
+  excludeFiles: [],
   includeExtensions: [".ts", ".tsx"],
   router: "app", // "app" | "pages" | "both"
   srcDir: true,
 };
 ```
 
-| Option              | Type                         | Default             | Description                             |
-| ------------------- | ---------------------------- | ------------------- | --------------------------------------- |
-| `excludeExtensions` | `string[]`                   | `[]`                | Skip files ending with any of these.    |
-| `excludeFiles`      | `string[]`                   | `["middleware.ts"]` | Skip files whose path contains any.     |
-| `includeExtensions` | `string[]`                   | `[".ts", ".tsx"]`   | Only consider files with these endings. |
-| `router`            | `"app" \| "pages" \| "both"` | `"app"`             | Which router to scan as the graph root. |
-| `srcDir`            | `boolean`                    | `true`              | Whether your project uses `src/`.       |
+| Option              | Type                         | Default           | Description                             |
+| ------------------- | ---------------------------- | ----------------- | --------------------------------------- |
+| `excludeExtensions` | `string[]`                   | `[]`              | Skip files ending with any of these.    |
+| `excludeFiles`      | `string[]`                   | `[]`              | Skip matching files (see below).        |
+| `includeExtensions` | `string[]`                   | `[".ts", ".tsx"]` | Only consider files with these endings. |
+| `router`            | `"app" \| "pages" \| "both"` | `"app"`           | Which router to scan as the graph root. |
+| `srcDir`            | `boolean`                    | `true`            | Whether your project uses `src/`.       |
+
+### `excludeFiles` patterns
+
+- A pattern without `/` matches a file name exactly: `"legacy.tsx"` skips every
+  file called `legacy.tsx`, and nothing else.
+- A pattern with `/` is a glob on the path relative to the project root — the
+  path the report prints: `"src/components/legacy/**"`, `"src/**/*.stories.tsx"`.
+  `*` stays within one folder, `**` spans any number of them, `?` is one character.
+
+Until 1.1 this was a substring match, so `"middleware.ts"` also hid
+`auth-middleware.ts`. Move fragment-style entries to one of the forms above.
 
 ## Programmatic API
 

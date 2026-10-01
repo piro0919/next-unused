@@ -1,6 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import madge from "madge";
 
 export type Router = "app" | "pages" | "both";
@@ -8,7 +9,13 @@ export type Router = "app" | "pages" | "both";
 export type Config = {
   /** File extensions to exclude when collecting candidates. */
   excludeExtensions?: string[];
-  /** File path fragments to exclude when collecting candidates. */
+  /**
+   * Files to leave out of the report. A pattern without a `/` matches a file
+   * name exactly (`"legacy.tsx"`). A pattern with a `/` is a glob matched
+   * against the path relative to the project root, as the report prints it
+   * (`"src/components/legacy/**"`). `*` stays within one segment, `**` spans
+   * any number, `?` is one character.
+   */
   excludeFiles?: string[];
   /** File extensions to include when collecting candidates. */
   includeExtensions?: string[];
@@ -20,7 +27,7 @@ export type Config = {
 
 const DEFAULTS: Required<Config> = {
   excludeExtensions: [],
-  excludeFiles: ["middleware.ts"],
+  excludeFiles: [],
   includeExtensions: [".ts", ".tsx"],
   router: "app",
   srcDir: true,
@@ -39,14 +46,90 @@ async function loadJsonConfig(file: string): Promise<unknown> {
     const { readFile } = await import("node:fs/promises");
     return JSON.parse(await readFile(file, "utf8"));
   }
-  const mod = await import(file);
+  const mod = await import(pathToFileURL(file).href);
   return mod.default ?? mod;
 }
 
+/**
+ * Directories that never hold project source. With `srcDir: false` the walk
+ * starts at the project root, where these sit next to `app/`.
+ */
+const IGNORED_DIRS = new Set([".git", ".next", "build", "coverage", "dist", "node_modules", "out"]);
+
+/**
+ * Walks `root` by hand rather than with `readdir({ recursive: true })`, so the
+ * ignored directories are never entered and no Node 20.12+ `parentPath` is needed.
+ */
 async function listFiles(root: string): Promise<string[]> {
   if (!existsSync(root)) return [];
-  const entries = await readdir(root, { withFileTypes: true, recursive: true });
-  return entries.filter((e) => e.isFile()).map((e) => path.join(e.parentPath ?? root, e.name));
+  const files: string[] = [];
+  const walk = async (dir: string): Promise<void> => {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!IGNORED_DIRS.has(entry.name)) await walk(full);
+      } else if (entry.isFile() && !entry.name.endsWith(".d.ts")) {
+        files.push(full);
+      }
+    }
+  };
+  await walk(root);
+  return files;
+}
+
+/**
+ * Files Next.js loads by name from the project root (or `src/`), beside the
+ * routers. They are entries of the dependency graph, like `app/` itself.
+ */
+const ENTRY_FILES = [
+  "middleware",
+  "proxy",
+  "instrumentation",
+  "instrumentation-client",
+  "mdx-components",
+];
+const ENTRY_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx"];
+
+function entryFiles(baseDir: string): string[] {
+  return ENTRY_FILES.flatMap((name) =>
+    ENTRY_EXTENSIONS.map((ext) => path.join(baseDir, name + ext)),
+  ).filter((file) => existsSync(file));
+}
+
+function globToRegExp(glob: string): RegExp {
+  let source = "";
+  for (let i = 0; i < glob.length; i++) {
+    const char = glob[i] as string;
+    if (char === "*" && glob[i + 1] === "*") {
+      // `**/` may also match nothing, so `src/**/x.ts` covers `src/x.ts`.
+      if (glob[i + 2] === "/") {
+        source += "(?:.*/)?";
+        i += 2;
+      } else {
+        source += ".*";
+        i += 1;
+      }
+    } else if (char === "*") {
+      source += "[^/]*";
+    } else if (char === "?") {
+      source += "[^/]";
+    } else {
+      source += char.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+    }
+  }
+  return new RegExp(`^${source}$`);
+}
+
+function excluder(cwd: string, patterns: string[]): (file: string) => boolean {
+  const matchers = patterns.map((pattern) => {
+    if (!pattern.includes("/")) return (rel: string) => path.posix.basename(rel) === pattern;
+    const re = globToRegExp(pattern.replace(/^\.\//, ""));
+    return (rel: string) => re.test(rel);
+  });
+  return (file) => {
+    const rel = path.relative(cwd, file).split(path.sep).join("/");
+    return matchers.some((match) => match(rel));
+  };
 }
 
 export async function findUnusedFiles(options: FindOptions = {}): Promise<string[]> {
@@ -56,7 +139,7 @@ export async function findUnusedFiles(options: FindOptions = {}): Promise<string
   const routers: ("app" | "pages")[] =
     config.router === "both" ? ["app", "pages"] : [config.router];
   const baseDir = config.srcDir ? path.resolve(cwd, "src") : cwd;
-  const madgePaths = routers.map((r) => path.resolve(baseDir, r));
+  const madgePaths = [...routers.map((r) => path.resolve(baseDir, r)), ...entryFiles(baseDir)];
 
   const tsconfigPath = path.resolve(cwd, options.tsconfigPath ?? "tsconfig.json");
   const tsConfig = (await loadJsonConfig(tsconfigPath)) as {
@@ -86,11 +169,12 @@ export async function findUnusedFiles(options: FindOptions = {}): Promise<string
   }
 
   const allFiles = await listFiles(baseDir);
+  const isExcluded = excluder(cwd, config.excludeFiles);
 
   const unused = allFiles.filter((file) => {
     if (referenced.has(file)) return false;
     if (config.excludeExtensions.some((ext) => file.endsWith(ext))) return false;
-    if (config.excludeFiles.some((frag) => file.includes(frag))) return false;
+    if (isExcluded(file)) return false;
     if (!config.includeExtensions.some((ext) => file.endsWith(ext))) return false;
     return true;
   });
@@ -125,9 +209,13 @@ export type UnusedExport = {
  * `alt`, `size` and `contentType` belong to the metadata image routes
  * (`opengraph-image.tsx`, `icon.tsx`), which is easy to forget: they sit in an
  * ordinary-looking component file next to the default export.
+ *
+ * `proxy` is what Next 16 renamed `middleware` to; `register` and
+ * `onRequestError` belong to `instrumentation.ts`, `onRouterTransitionStart`
+ * to `instrumentation-client.ts`, and `useMDXComponents` to `mdx-components.tsx`.
  */
 const FRAMEWORK_EXPORTS =
-  /^(default|middleware|config|metadata|viewport|revalidate|dynamic|dynamicParams|fetchCache|runtime|preferredRegion|maxDuration|experimental_ppr|alt|size|contentType|generateMetadata|generateViewport|generateStaticParams|generateImageMetadata|generateSitemaps|GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)$/;
+  /^(default|middleware|proxy|register|onRequestError|onRouterTransitionStart|useMDXComponents|config|metadata|viewport|revalidate|dynamic|dynamicParams|fetchCache|runtime|preferredRegion|maxDuration|experimental_ppr|alt|size|contentType|generateMetadata|generateViewport|generateStaticParams|generateImageMetadata|generateSitemaps|GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)$/;
 
 /** `export function foo`, `export const foo`, `export class Foo`. */
 const EXPORT_DECLARATION = /^export\s+(?:async\s+)?(?:function\*?|const|let|var|class)\s+(\w+)/gm;
@@ -155,10 +243,10 @@ export async function findUnusedExports(options: FindOptions = {}): Promise<Unus
   const config = { ...DEFAULTS, ...options.config };
   const baseDir = config.srcDir ? path.resolve(cwd, "src") : cwd;
 
+  const isExcluded = excluder(cwd, config.excludeFiles);
   const candidates = (await listFiles(baseDir)).filter((file) => {
-    if (file.endsWith(".d.ts")) return false;
     if (config.excludeExtensions.some((ext) => file.endsWith(ext))) return false;
-    if (config.excludeFiles.some((frag) => file.includes(frag))) return false;
+    if (isExcluded(file)) return false;
     return config.includeExtensions.some((ext) => file.endsWith(ext));
   });
 

@@ -9,7 +9,7 @@
 
 ## Tech Stack
 
-- Node.js 20+ (uses `fs/promises` recursive readdir, `util.parseArgs`)
+- Node.js 20+ (uses `fs/promises` readdir, `util.parseArgs`). The walk is hand-rolled so it can skip `node_modules` etc. and does not need `Dirent.parentPath` (20.12+)
 - Next.js — landing page at <https://next-unused.kkweb.io>, lives in the same repo
 - TypeScript 5
 - tsup — dual entry build (library + CLI)
@@ -84,7 +84,7 @@ Config file (project root, picked up in this order): `next-unused.config.mjs` �
 // next-unused.config.mjs
 export default {
   excludeExtensions: [],
-  excludeFiles: ["middleware.ts"],
+  excludeFiles: [],
   includeExtensions: [".ts", ".tsx"],
   router: "app", // or "pages" or "both"
   srcDir: true,

@@ -21,13 +21,15 @@ describe("findUnusedExports", () => {
 
   it("leaves the exports the framework calls alone", async () => {
     const unused = await findUnusedExports({ cwd: fixtureDir });
-    expect(unused.some(({ name }) => name === "middleware" || name === "default")).toBe(false);
+    expect(unused.some(({ name }) => ["default", "middleware", "register"].includes(name))).toBe(
+      false,
+    );
   });
 
   it("respects excludeFiles", async () => {
     const unused = await findUnusedExports({
       cwd: fixtureDir,
-      config: { excludeFiles: ["middleware.ts", "format.ts"] },
+      config: { excludeFiles: ["format.ts"] },
     });
     expect(unused.some(({ file }) => file.includes("format.ts"))).toBe(false);
   });
