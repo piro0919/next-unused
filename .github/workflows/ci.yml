@@ -8,13 +8,18 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # pnpm 11 itself needs Node 22.13+, so the full job starts at 22.
+        # The engines floor (20) is covered by the smoke job below.
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v7
       # 版は package.json の packageManager が正本。ここにも書くと食い違って落ちる。
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.19.0
+          node-version: ${{ matrix.node }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
@@ -22,3 +27,39 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: pnpm build:lib
+      - run: pnpm check:package
+      - if: matrix.node == 24
+        run: pnpm pack --out next-unused.tgz
+      - if: matrix.node == 24
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarball
+          path: next-unused.tgz
+
+  # engines says >=20. pnpm cannot run there, so install the packed tarball
+  # with npm and run the published CLI and library on the floor version.
+  smoke:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v4
+        with:
+          name: tarball
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - name: Install the tarball
+        run: |
+          mkdir /tmp/smoke && cd /tmp/smoke
+          npm init -y > /dev/null
+          npm install "$GITHUB_WORKSPACE/next-unused.tgz"
+      - name: Run the CLI against the fixture
+        working-directory: tests/fixtures/app-router-project
+        run: |
+          node /tmp/smoke/node_modules/@piro0919/next-unused/dist/cli.js --help
+          node /tmp/smoke/node_modules/@piro0919/next-unused/dist/cli.js | tee out.txt
+          grep -q "src/components/Unused.tsx" out.txt
+      - name: Import the library
+        working-directory: /tmp/smoke
+        run: node --input-type=module -e "const m = await import('@piro0919/next-unused'); if (typeof m.findUnusedFiles !== 'function') process.exit(1);"

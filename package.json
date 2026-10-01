@@ -31,8 +31,9 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -46,16 +47,18 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build:lib",
+    "prepublishOnly": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build:lib && pnpm run check:package",
     "dev": "next dev",
     "start": "next start",
     "build:lib": "tsup",
-    "build:lib:watch": "tsup --watch"
+    "build:lib:watch": "tsup --watch",
+    "check:package": "publint --strict && attw --pack . --profile esm-only"
   },
   "dependencies": {
     "madge": "^8.0.0"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^10.0.1",
     "@types/madge": "5.0.3",
     "@types/node": "^22.10.0",
@@ -68,6 +71,7 @@
     "lefthook": "^2.0.13",
     "next": "^16.3.2",
     "prettier": "^3.4.2",
+    "publint": "^0.3.24",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsup": "^8.3.5",
