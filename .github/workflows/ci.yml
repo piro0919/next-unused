@@ -48,7 +48,7 @@ jobs:
           name: tarball
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 20.20.2
       - name: Install the tarball
         run: |
           mkdir /tmp/smoke && cd /tmp/smoke
