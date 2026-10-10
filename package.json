@@ -60,6 +60,7 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^10.0.1",
+    "@piro0919/eslint-config": "github:piro0919/eslint-config#v1.0.0",
     "@types/madge": "5.0.3",
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
