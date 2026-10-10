@@ -36,9 +36,8 @@ export default function Home() {
     <div className="container">
       <h1 className="title">next-unused</h1>
       <p className="subtitle">
-        A CLI that walks your Next.js dependency graph from the router root and
-        reports the <code>.ts</code> / <code>.tsx</code> files that no one
-        imports.
+        A CLI that walks your Next.js dependency graph from the router root and reports the{" "}
+        <code>.ts</code> / <code>.tsx</code> files that no one imports.
       </p>
 
       <section className="section">
@@ -55,8 +54,7 @@ export default function Home() {
           </code>
         </pre>
         <p className="note">
-          When there is nothing left over, it says{" "}
-          <code>No unused files!</code> and exits with 0.
+          When there is nothing left over, it says <code>No unused files!</code> and exits with 0.
         </p>
       </section>
 
@@ -64,8 +62,7 @@ export default function Home() {
         <h2>Install</h2>
         <pre className="terminal">
           <code>
-            <span className="prompt">$</span> npm install --save-dev
-            @piro0919/next-unused
+            <span className="prompt">$</span> npm install --save-dev @piro0919/next-unused
           </code>
         </pre>
         <p className="note">Requires Node 20+.</p>
@@ -74,17 +71,15 @@ export default function Home() {
       <section className="section">
         <h2>Use it in CI</h2>
         <p>
-          <code>--error-on-unused-files</code> exits with code 1 when any are
-          found, so a pull request can fail on leftovers.
+          <code>--error-on-unused-files</code> exits with code 1 when any are found, so a pull
+          request can fail on leftovers.
         </p>
         <pre className="terminal">
           <code>
             {"{\n"}
             {'  "scripts": {\n'}
             {'    "find:unused": "next-unused",\n'}
-            {
-              '    "check:unused": "next-unused --error-on-unused-files"\n'
-            }
+            {'    "check:unused": "next-unused --error-on-unused-files"\n'}
             {"  }\n"}
             {"}"}
           </code>
@@ -95,8 +90,7 @@ export default function Home() {
         <h2>Configuration</h2>
         <p>
           Drop a config file in your project root. Picked up in this order:{" "}
-          <code>next-unused.config.mjs</code> → <code>.js</code> →{" "}
-          <code>.json</code>.
+          <code>next-unused.config.mjs</code> → <code>.js</code> → <code>.json</code>.
         </p>
         <div className="tableWrap">
           <table className="options">
@@ -133,9 +127,7 @@ export default function Home() {
         <p>The same walk is available as a function.</p>
         <pre className="terminal">
           <code>
-            {
-              'import { findUnusedFiles, loadConfig } from "@piro0919/next-unused";\n\n'
-            }
+            {'import { findUnusedFiles, loadConfig } from "@piro0919/next-unused";\n\n'}
             {"const config = await loadConfig();\n"}
             {"const unused = await findUnusedFiles({ config });"}
           </code>
@@ -158,6 +150,14 @@ export default function Home() {
           target="_blank"
         >
           GitHub →
+        </a>
+        <a
+          className="link"
+          href="https://buymeacoffee.com/piro0919"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          Buy Me a Coffee →
         </a>
       </div>
     </div>
